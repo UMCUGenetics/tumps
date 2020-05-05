@@ -34,7 +34,6 @@ Parameters:
 exit
 }
 
-echo "0"
 POSITIONAL=()
 
 ##DEFAULT ARGUMENTS
@@ -55,7 +54,7 @@ NANOSV_VENV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/NanoSV/
 NANOSV_CONFIG=files/config_COLO829_NGMLR.ini
 PBSV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/miniconda3/bin/pbsv
 REF=/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.fasta
-echo "00"
+
 ##READ PARAMETERS
 while [[ $# -gt 0 ]]
 do
@@ -63,8 +62,7 @@ do
     case $key in
     -h|--help)
     usage
-    shift
-    shift# past argument
+    shift # past argument
     ;;
     -b|--bam)
     BAM="$2"
@@ -173,9 +171,9 @@ do
     ;;
     esac
 done
-echo "HERE"
+
 set -- "${POSITIONAL[@]}" # restore positional parameters
-echo "2"
+
 #Check required parameters
 if [ -z $BAM ]; then
   echo "Missing -b|--bam parameter"
@@ -187,7 +185,7 @@ elif [ -z $NORMAL ]; then
   echo "Missing -n|--normal parameter"
   usage
 fi
-echo "3"
+
 SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 GRIDSS_SCRIPT=${SCRIPT_DIR}/scripts/GRIDSS.sh
 OVERLAP_SCRIPT=${SCRIPT_DIR}/scripts/annotate_sv_vcf_file_without_ori.py
@@ -391,6 +389,4 @@ do
     else echo "Overlap files exist, skipping"
     fi
   fi
-done
-
 done
