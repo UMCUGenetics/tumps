@@ -171,8 +171,9 @@ do
     ;;
     esac
 done
+echo "HERE"
 set -- "${POSITIONAL[@]}" # restore positional parameters
-
+echo "2"
 #Check required parameters
 if [ -z $BAM ]; then
   echo "Missing -b|--bam parameter"
@@ -184,7 +185,7 @@ elif [ -z $NORMAL ]; then
   echo "Missing -n|--normal parameter"
   usage
 fi
-
+echo "3"
 SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
 GRIDSS_SCRIPT=${SCRIPT_DIR}/scripts/GRIDSS.sh
 OVERLAP_SCRIPT=${SCRIPT_DIR}/scripts/annotate_sv_vcf_file_without_ori.py
