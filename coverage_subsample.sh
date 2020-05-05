@@ -214,7 +214,7 @@ fi
 
 COVS=`echo "${COVERAGES}" | sed "s:,: :g"`
 
-for COV in $COV
+for COV in $COVS
 do
 
   COVBAM=cov${COV}.bam
