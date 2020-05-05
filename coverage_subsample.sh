@@ -236,7 +236,7 @@ do
     
     if  [ ! -f $RAWVCF ]; then
     echo "GRIDSS calling"
-    qsub -cwd -hold_jid subsample_${COV}_${RAND} -l h_rt=48:0:0 -l h_vmem=70G -pe threaded 4 -N GRIDSS_calling_${COV}_${RAND} -e logs/GRIDSS_calling_${COV}_${RAND}.err -o logs/GRIDSS_calling_${COV}_${RAND}.o $GRIDSS_SCRIPT -t $COVBAM -n $NORMAL_SV -o $RAWVCF
+    qsub -cwd -hold_jid subsample_${COV}_${RAND} -l h_rt=48:0:0 -l h_vmem=70G -pe threaded 4 -N GRIDSS_calling_${COV}_${RAND} -e logs/GRIDSS_calling_${COV}_${RAND}.err -o logs/GRIDSS_calling_${COV}_${RAND}.o $GRIDSS_SCRIPT -t $COVBAM -n $NORMAL -o $RAWVCF
     else echo "$RAWVCF exists, skipping to SV filtering"
     fi
     
@@ -286,14 +286,14 @@ do
     SNF_TUMVCF=${COVBAM/.bam/.tumor.raw.sniffles.vcf}
     MERGEDVCF=${COVBAM/.bam/.merged.vcf}
     SOMVCF=${COVBAM/.bam/.somatic.vcf}
-    NORSVNAME=`basename $NORMAL_SV`
+    NORSVNAME=`basename $NORMAL`
     NSV_NORVCF=${NORSVNAME/.bam/.nanosv.vcf}
     SNF_NORVCF=${NORSVNAME/.bam/.sniffles.vcf}
     
     if [ ! -f logs/normal.run ]; then
-        echo "$SNIFFLES -m $NORMAL_SV -v $SNF_NORVCF -t 4 --report_BND --genotype" | \
+        echo "$SNIFFLES -m $NORMAL -v $SNF_NORVCF -t 4 --report_BND --genotype" | \
         qsub -cwd -pe threaded 4 -l h_rt=24:0:0 -l h_vmem=20G -N SNIFFLES_NORMAL_${RAND} -e logs/SNIFFLES_NORMAL_${RAND}.err -o logs/SNIFFLES_NORMAL_${RAND}.o
-        echo ". $NANOSV_VENV/bin/activate; $NANOSV_VENV/bin/NanoSV -t 4 -c $NANOSV_CONFIG -b $NANOSV_VENV/bin/human_hg19.bed -o $NSV_NORVCF $NORMAL_SV" | \
+        echo ". $NANOSV_VENV/bin/activate; $NANOSV_VENV/bin/NanoSV -t 4 -c $NANOSV_CONFIG -b $NANOSV_VENV/bin/human_hg19.bed -o $NSV_NORVCF $NORMAL" | \
         qsub -cwd -pe threaded 4 -l h_rt=96:0:0 -l h_vmem=80G -N NANOSV_NORMAL_${RAND} -e logs/NANOSV_NORMAL_${RAND}.err -o logs/NANOSV_NORMAL_${RAND}.o
         touch logs/normal.run
     else echo "Normal VCF exists, or the job is running. Skipping Normal SV calling"
@@ -343,12 +343,12 @@ do
   elif [ $MODE == "pbsv" ]; then
     GET_SOMATIC=${SCRIPT_DIR}/get_somatic_pacbio.py
     TUMSIG=${COVBAM/.bam/.tumor.svsig.gz}
-    NORNAME=`basename $NORMAL_SV`
+    NORNAME=`basename $NORMAL`
     NORSIG=${NORNAME/.bam/.normal.svsig.gz}
     MERGVCF=${COVBAM/.bam/.merged.vcf}
     SOMVCF=${COVBAM/.bam/.somatic.vcf}
     if [ ! -f logs/pbsv_normal.run ]; then
-        echo "$PBSV discover $NORMAL_SV $NORSIG" | \
+        echo "$PBSV discover $NORMAL $NORSIG" | \
         qsub -cwd -l h_rt=24:0:0 -l h_vmem=60G -N PBSV_DISC_NORMAL_${RAND} -e logs/PBSV_DISC_NORMAL_${RAND}.err -o logs/PBSV_DISC_NORMAL_${RAND}.o
         touch logs/pbsv_normal.run
     else echo"$NORSIG exists, or the job is running. Skipping Normal SV discovery"
