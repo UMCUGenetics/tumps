@@ -34,6 +34,7 @@ Parameters:
 exit
 }
 
+echo "0"
 POSITIONAL=()
 
 ##DEFAULT ARGUMENTS
@@ -54,7 +55,7 @@ NANOSV_VENV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/NanoSV/
 NANOSV_CONFIG=files/config_COLO829_NGMLR.ini
 PBSV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/miniconda3/bin/pbsv
 REF=/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.fasta
-
+echo "00"
 ##READ PARAMETERS
 while [[ $# -gt 0 ]]
 do
@@ -62,7 +63,8 @@ do
     case $key in
     -h|--help)
     usage
-    shift # past argument
+    shift
+    shift# past argument
     ;;
     -b|--bam)
     BAM="$2"
