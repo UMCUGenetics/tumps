@@ -221,13 +221,15 @@ do
   echo ""
   echo "###COVERAGE ${COV}###"
   #Calculate percentage
+  if  [ ! -f logs/${COVBAM}.done ]; then
   SUBSAMPLE_TUMOR=$(awk -v coverage="$COV" -v read_depth="$BAMCOV" 'BEGIN{print coverage/read_depth}')
   echo "Subsampling tumor by $SUBSAMPLE_TUMOR"
-  echo "$SAMBAMBA view -f bam -s $SUBSAMPLE_TUMOR -o $COVBAM $BAM" |\
+  echo "$SAMBAMBA view -f bam -s $SUBSAMPLE_TUMOR -o $COVBAM $BAM; touch logs/${COVBAM}.done" |\
   qsub -cwd -l h_rt=12:0:0 -l h_vmem=30G -N subsample_${COV}_${RAND} -e logs/subsample_${COV}_${RAND}.err -o logs/subsample_${COV}_${RAND}.o
-    if [ $NOSV_FLAG ]; then
-      echo "Skipping SV calling"
-      continue; fi
+    
+  if [ $NOSV_FLAG ]; then
+    echo "Skipping SV calling"
+    continue; fi
     
   if [ $MODE == "gridss" ]; then
     RAWVCF=${COVBAM/.bam/.raw.vcf}
