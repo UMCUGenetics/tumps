@@ -246,15 +246,15 @@ do
     
     if  [ ! -f $SOMVCF ]; then
     echo "GRIDSS filter"
-    echo "#! /bin/sh" > logs/GRIDSS_filter_${RAND}.sh
-    echo "guixr load-profile /hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/hmf-pipeline -- <<EOF" >> logs/GRIDSS_filter_${RAND}.sh
-    echo "Rscript ${LIBGRIDSS}/gridss_somatic_filter.R --normalordinal 2 -p $GRIDSS_PON -i ${RAWVCF} -o ${SOMVCF} -f ${SOMFULLVCF} -s $LIBGRIDSS" >> logs/GRIDSS_filter_${RAND}.sh
-    echo "mv ${SOMVCF}.bgz ${SOMVCF}.gz" >> logs/GRIDSS_filter_${RAND}.sh
-    echo "mv ${SOMFULLVCF}.bgz ${SOMFULLVCF}.gz" >> logs/GRIDSS_filter_${RAND}.sh
-    echo "gunzip ${SOMVCF}.gz" >> logs/GRIDSS_filter_${RAND}.sh
-    echo "gunzip ${SOMFULLVCF}.gz" >> logs/GRIDSS_filter_${RAND}.sh
-    echo "EOF" >> logs/GRIDSS_filter_${RAND}.sh
-    qsub -cwd -l h_rt=12:0:0 -l h_vmem=20G -hold_jid GRIDSS_calling_${COV}_${RAND} -N GRIDSS_filter_${COV}_${RAND} -e logs/GRIDSS_filter_${COV}_${RAND}.err -o logs/GRIDSS_filter_${COV}_${RAND}.o logs/GRIDSS_filter_${RAND}.sh
+    echo "#! /bin/sh" > logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "guixr load-profile /hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/hmf-pipeline -- <<EOF" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "Rscript ${LIBGRIDSS}/gridss_somatic_filter.R --normalordinal 2 -p $GRIDSS_PON -i ${RAWVCF} -o ${SOMVCF} -f ${SOMFULLVCF} -s $LIBGRIDSS" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "mv ${SOMVCF}.bgz ${SOMVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "mv ${SOMFULLVCF}.bgz ${SOMFULLVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "gunzip ${SOMVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "gunzip ${SOMFULLVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "EOF" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    qsub -cwd -l h_rt=12:0:0 -l h_vmem=20G -hold_jid GRIDSS_calling_${COV}_${RAND} -N GRIDSS_filter_${COV}_${RAND} -e logs/GRIDSS_filter_${COV}_${RAND}.err -o logs/GRIDSS_filter_${COV}_${RAND}.o logs/GRIDSS_filter_${COV}_${RAND}.sh
     else echo "$SOMVCF exists, skipping to cleanup"
     fi
     
