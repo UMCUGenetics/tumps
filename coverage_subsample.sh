@@ -38,20 +38,24 @@ POSITIONAL=()
 
 ##DEFAULT ARGUMENTS
 
+SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
+GRIDSS_SCRIPT=${SCRIPT_DIR}/scripts/GRIDSS.sh
+OVERLAP_SCRIPT=${SCRIPT_DIR}/scripts/annotate_sv_vcf_file_without_ori.py
+
 OUTDIR=.
 MODE=gridss
-TRUTHSET=files/COLO829.somatic.vcf
+TRUTHSET=${SCRIPT_DIR}/files/COLO829.somatic.vcf
 COVERAGES="1,5,10,30,50"
-BED=files/human_hg19.bed
+BED=${SCRIPT_DIR}/files/human_hg19.bed
 SAMBAMBA=/hpc/local/CentOS7/cog_bioinf/sambamba_v0.6.5/sambamba
 SAMTOOLS=/hpc/local/CentOS7/cog_bioinf/samtools-1.7/samtools
 MAIL=jespejov@umcutrecht.nl
-LIBGRIDSS=script/libgridss/
+LIBGRIDSS=${SCRIPT_DIR}/script/libgridss/
 GRIDSS_PON=/hpc/cog_bioinf/cuppen/project_data/Roel_pipeline_validation/gridss
 SNIFFLES=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/Sniffles-1.0.8/bin/sniffles-core-1.0.8/sniffles
 SURVIVOR=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/SURVIVOR-1.0.6/Debug/SURVIVOR
 NANOSV_VENV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/NanoSV/
-NANOSV_CONFIG=files/config_COLO829_NGMLR.ini
+NANOSV_CONFIG=${SCRIPT_DIR}/files/config_COLO829_NGMLR.ini
 PBSV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/miniconda3/bin/pbsv
 REF=/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.fasta
 
@@ -186,9 +190,6 @@ elif [ -z $NORMAL ]; then
   usage
 fi
 
-SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
-GRIDSS_SCRIPT=${SCRIPT_DIR}/scripts/GRIDSS.sh
-OVERLAP_SCRIPT=${SCRIPT_DIR}/scripts/annotate_sv_vcf_file_without_ori.py
 
 RAND=$(cat /dev/urandom | tr -cd 'a-zA-Z0-9' | head -c 7)
 echo "Random code for this run is $RAND"
