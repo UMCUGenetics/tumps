@@ -2,14 +2,16 @@
 gridss.short_event_size_threshold = 1000
 
 # somatic filters
-gridss.allowable_normal_contamination=0.03 # matches https://github.com/hartwigmedical/pipeline/settings/include/settings.ini:BPI_CONTAMINATION_FRACTION
+gridss.allowable_normal_contamination=0.03
 gridss.min_normal_depth = 8
+# Minimum number of reads providing direct support the variant
+gridss.min_direct_read_support = 1
 
 # initial consideration filters
 gridss.max_homology_length = 50
 gridss.max_inexact_homology_length = 50
 gridss.max_allowable_short_event_strand_bias = 0.95
-gridss.single_breakend_multiplier = 2000/350 # Require this much more support for single breakends
+gridss.single_breakend_multiplier = 1000/350 # Require this much more support for single breakends
 gridss.min_af = 0.005
 # How much better a single breakend call has to be for
 # associated breakpoints to be considered shadow calls
@@ -34,4 +36,7 @@ gridss.soft_filters = c("PON")
 
 # rescue limits
 # fragments supporting rescued variant / fragments supporting rescuing variant
-gridss.min_rescue_portion = 0.333
+gridss.min_rescue_portion = 0.25
+
+# consistency
+gridss.min_event_size = 8

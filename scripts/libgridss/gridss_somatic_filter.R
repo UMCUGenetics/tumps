@@ -1,24 +1,35 @@
 #!/usr/bin/env Rscript
 library(argparser)
 argp = arg_parser("Filters a raw GRIDSS VCF into somatic call subsets.")
-argp = add_argument(argp, "--pondir", default=NA, help="Directory containing Panel Of Normal bed/bedpe used to filter FP somatic events. USer create_gridss_pon.R to generate the PON.")
-argp = add_argument(argp, "--ref", default="BSgenome.Hsapiens.UCSC.hg19", help="Reference genome to use. Must be a valid installed BSgenome package")
+argp = add_argument(argp, "--pondir", default=NA, help="Directory containing Panel Of Normal bed/bedpe used to filter FP somatic events. Use gridss.GeneratePonBedpe to generate the PON.")
+argp = add_argument(argp, "--ref", default="", help="Reference genome to use. Must be a valid installed BSgenome package")
 argp = add_argument(argp, "--input", help="GRIDSS VCF")
 argp = add_argument(argp, "--output", help="High confidence somatic subset")
 argp = add_argument(argp, "--fulloutput", help="Full call set excluding obviously germline call.")
-argp = add_argument(argp, "--normalordinal", type="integer", nargs=Inf, default=c(1), help="Ordinal(s) of matching normal sample in the VCF")
-#argp = add_argument(argp, "--tumourordinal", type="integer", nargs=Inf, default=c(2), help="Ordinal(s) of tumour samples in the VCF")
+argp = add_argument(argp, "--plotdir", default="", help="Output directory for plots")
+argp = add_argument(argp, "--normalordinal", type="integer", default=1, help="Ordinal of matching normal sample in the VCF")
+argp = add_argument(argp, "--tumourordinal", type="integer", nargs=Inf, help="Ordinal of tumour sample(s) in the VCF. Defaults to all samples not listed as matched normals")
 argp = add_argument(argp, "--scriptdir", default=ifelse(sys.nframe() == 0, "./", dirname(sys.frame(1)$ofile)), help="Path to libgridss.R script")
-# argv = parse_args(argp, argv=c("--input", "D:/hartwig/down/COLO829T.gridss.somatic.vcf", "--output", "D:/hartwig/temp/out.vcf", "-f", "D:/hartwig/temp/full.vcf", "-r", "BSgenome.Hsapiens.UCSC.hg19", "-p", "D:/hartwig/pon", "--scriptdir", "D:/hartwig/scripts/gridss"))
+argp = add_argument(argp, "--gc", flag=TRUE, help="Perform garbage collection after freeing of large objects. ")
+# argv = parse_args(argp, argv=c("--input", "../../../gridss-purple-linx/test/gridss/COLO829v001R_COLO829v001T.gridss.vcf", "--output", "../../../temp/somatic.vcf", "-f", "../../../temp/full.vcf", "-p", "../../../gridss-purple-linx/refdata/hg19/dbs/gridss/pon3792v1", "--scriptdir", "../", "--gc"))
+# argv = parse_args(argp, argv=c("--input", "W:/projects/gridss/regression/v2.8.0-SNAPSHOT/colo829/output.vcf.gz", "--output", "C:/temp/tmp.vcf", "-f", "C:/temp/tmp-full.vcf", "-p", "D:/hartwig/pon", "--scriptdir", "D:/dev/gridss/scripts", "--gc"))
 argv = parse_args(argp)
 
-if (!file.exists(argv$input)) {
+for (argname in c("input")) {
+	if (is.na(argv[argname]) || is.null(argv[argname])) {
+		msg = paste0("Required argument missing: --", argname)
+		write(msg, stderr())
+		print(argp)
+		stop(msg)
+	}
+}
+if (is.na(argv$input) || is.null(argv$input) || !file.exists(argv$input)) {
   msg = paste(argv$input, "not found")
   write(msg, stderr())
   print(argp)
   stop(msg)
 }
-if (is.na(argv$pondir) || argv$pondir == "NA") {
+if (is.na(argv$pondir)) {
   argv$pondir = NULL
 } else if (!dir.exists(argv$pondir)) {
   msg = paste(argv$pondir, "not found")
@@ -26,11 +37,10 @@ if (is.na(argv$pondir) || argv$pondir == "NA") {
   print(argp)
   stop(msg)
 }
-refgenome=eval(parse(text=paste0("library(", argv$ref, ")\n", argv$ref)))
-
-library(tidyverse)
-library(readr)
-library(stringr)
+options(tidyverse.quiet = TRUE)
+library(tidyverse, warn.conflicts=FALSE, quietly=TRUE)
+library(readr, warn.conflicts=FALSE, quietly=TRUE)
+library(stringr, warn.conflicts=FALSE, quietly=TRUE)
 libgridssfile = paste0(argv$scriptdir, "/", "libgridss.R")
 if (file.exists(libgridssfile)) {
   tmpwd = getwd()
@@ -43,48 +53,115 @@ if (file.exists(libgridssfile)) {
   print(argp)
   stop(msg)
 }
-
+refgenome = NULL
+if (!is.null(argv$ref) & !is.na(argv$ref) & argv$ref != "") {
+  if (!(argv$ref %in% installed.packages()[,1])) {
+    stop(paste("Missing reference genome package", argv$ref, "."))
+  } else {
+    refgenome=eval(parse(text=paste0("library(", argv$ref, ")\n", argv$ref)))
+  }
+} else {
+  msg = paste("No reference genome supplied using --ref. Not performing variant equivalence checks.")
+  write(msg, stderr())
+}
+library(ggplot2)
+dpi=300
+theme_set(theme_bw())
 
 # Filter to somatic calls
-write(paste0("Reading ", argv$input), stderr())
-full_vcf = readVcf(argv$input, "hg19")
-tumourordinal = seq(ncol(geno(full_vcf)$VF))[-argv$normalordinal]
+write(paste(Sys.time(), "Reading", argv$input), stderr())
+raw_vcf = readVcf(argv$input)
+nsamples = ncol(geno(raw_vcf)$VF)
+if (is.null(argv$tumourordinal) | any(is.na(argv$tumourordinal))) {
+	argv$tumourordinal = seq(ncol(geno(raw_vcf)$VF))[-argv$normalordinal]
+}
+if (any(argv$normalordinal > nsamples)) {
+	msg = paste("Unable to use sample(s)", paste(argv$normalordinal, collapse = ","), "as matched normal - only", nsamples, "samples found in VCF.")
+	write(msg, stderr())
+	stop(msg)
+}
+if (any(argv$tumourordinal > nsamples)) {
+	msg = paste("Unable to use sample(s)", paste(argv$tumourordinal, collapse = ","), "as tumour sample - only", nsamples, "samples found in VCF.")
+	write(msg, stderr())
+	stop(msg)
+}
+
+write(paste("Tumour samples:", paste(colnames(geno(raw_vcf)$VF)[argv$tumourordinal], collapse = ",")), stderr())
+write(paste("Matched normals:", paste(colnames(geno(raw_vcf)$VF)[argv$normalordinal], collapse = ",")), stderr())
+if (argv$plotdir != "") {
+  # QUAL distributions of each sample
+  plotdf = data.frame(
+  		sample=rep(colnames(geno(raw_vcf)$QUAL), each=length(raw_vcf)),
+  		bpqual=as.numeric(geno(raw_vcf)$QUAL),
+  		bequal=as.numeric(geno(raw_vcf)$BQ),
+  		alt=rep(as.character(alt(raw_vcf)), times=ncol(geno(raw_vcf)$QUAL)),
+  		stringsAsFactors=FALSE) %>%
+		mutate(
+			isSingleBreakend=startsWith(alt, ".") | endsWith(alt, "."),
+			qual=ifelse(isSingleBreakend, bequal, bpqual),
+			breakpointType=ifelse(isSingleBreakend, "Breakend", "Breakpoint"),
+			foundIn=ifelse(isSingleBreakend,
+										 rep(rowSums(geno(raw_vcf)$BQ > 0), times=ncol(geno(raw_vcf)$BQ)),
+										 rep(rowSums(geno(raw_vcf)$QUAL > 0), times=ncol(geno(raw_vcf)$QUAL))))
+  ggsave(paste0(argv$plotdir, "/", basename(argv$output), ".plots.bpqual.png"),
+         ggplot(plotdf %>% filter(qual > 0)) +
+           aes(x=qual, fill=as.character(foundIn)) +
+           geom_histogram(bins=50) +
+           scale_x_log10() +
+           facet_wrap(sample ~ breakpointType, scales="free_y") +
+           labs(fill="Found in samples", title="Raw QUAL breakdown"),
+         dpi=dpi, unit="in", width=3840/dpi, height=2160/dpi)
+}
+# hard filter variants that are obviously not somatic
+full_vcf = raw_vcf[geno(raw_vcf)$QUAL[,argv$normalordinal] / VariantAnnotation::fixed(raw_vcf)$QUAL < 4 * gridss.allowable_normal_contamination]
+rm(raw_vcf)
+if (argv$gc) { gc() }
 # hard filter unpaired breakpoints (caused by inconsistent scoring across the two breakends)
-full_vcf = full_vcf[is.na(info(full_vcf)$PARID) | info(full_vcf)$PARID %in% names(full_vcf)]
+full_vcf = full_vcf[is.na(info(full_vcf)$MATEID) | info(full_vcf)$MATEID %in% names(full_vcf)]
 full_vcf = align_breakpoints(full_vcf)
 # Add header fields
-info(header(full_vcf)) = unique(as(rbind(as.data.frame(info(header(full_vcf))), data.frame(
-  row.names=c("BPI_AF", "LOCAL_LINKED_BY", "REMOTE_LINKED_BY"),
-  Number=c(".", "1", "1"),
-  Type=c("Float", "String", "String"),
-  Description=c("Allele fraction at for each breakend", "Breakend linking information", "Partner breakend linking information"))), "DataFrame"))
+full_vcf = addVCFHeaders(full_vcf)
 
-write(paste0("Parsing SVs in ", argv$input), stderr())
-full_bpgr = breakpointRanges(full_vcf, unpartneredBreakends=FALSE)
-full_begr = breakpointRanges(full_vcf, unpartneredBreakends=TRUE)
-write(paste0("Calculating VAF ", argv$input), stderr())
-full_bpgr$af = gridss_bp_af(full_bpgr, full_vcf, tumourordinal)
-full_bpgr$af_str = paste(full_bpgr$af, partner(full_bpgr)$af, sep=",")
-full_begr$af = gridss_be_af(full_begr, full_vcf, tumourordinal)
-full_begr$af_str = as.character(full_begr$af)
-info(full_vcf)$BPI_AF = rep("", length(full_vcf))
-if (length(full_bpgr) > 0) {
-  info(full_vcf[names(full_bpgr)])$BPI_AF = full_bpgr$af_str
-}
-if (length(full_begr) > 0) {
-  info(full_vcf[names(full_begr)])$BPI_AF = full_begr$af_str
-}
+info(full_vcf)$TAF = rep("", length(full_vcf))
+filters = rep("", length(full_vcf))
+names(filters) = names(full_vcf)
 
-write(paste0("Filtering pass 1 ", argv$input), stderr())
-
-if (is.null(argv$pondir)) {
-  write("Skipping PON filter", stderr())
-  bpfiltered = gridss_breakpoint_filter(full_bpgr, full_vcf, normalOrdinal=argv$normalordinal, tumourOrdinal=tumourordinal)
-  befiltered = gridss_breakend_filter(full_begr, full_vcf, normalOrdinal=argv$normalordinal, tumourOrdinal=tumourordinal)
-} else {
-  bpfiltered = gridss_breakpoint_filter(full_bpgr, full_vcf, pon_dir=argv$pondir, normalOrdinal=argv$normalordinal, tumourOrdinal=tumourordinal)
-  befiltered = gridss_breakend_filter(full_begr, full_vcf, pon_dir=argv$pondir, normalOrdinal=argv$normalordinal, tumourOrdinal=tumourordinal)
+write(paste(Sys.time(), "Parsing single breakends", argv$input), stderr())
+begr = breakpointRanges(full_vcf, unpartneredBreakends=TRUE)
+if (is.null(begr$sourceId) & !is.null(begr$vcfId)) {
+  stop("StructuralVariantAnnotation version mismatch.")
 }
+write(paste(Sys.time(), "Calculating single breakend VAF", argv$input), stderr())
+begr$af = round(gridss_be_af(begr, full_vcf, argv$tumourordinal), 5)
+begr$af_str = as.character(begr$af)
+if (length(begr) > 0) {
+  info(full_vcf[names(begr)])$TAF = begr$af_str
+}
+write(paste(Sys.time(), "Filtering single breakends", argv$input), stderr())
+befiltered = gridss_breakend_filter(begr, full_vcf, pon_dir=argv$pondir, normalOrdinal=argv$normalordinal, tumourOrdinal=argv$tumourordinal)
+filters[names(begr)] = befiltered
+rm(befiltered)
+full_vcf = full_vcf[passes_very_hard_filters(filters)]
+filters = filters[passes_very_hard_filters(filters)]
+begr = begr[names(begr) %in% names(full_vcf)]
+if (argv$gc) { gc() }
+
+
+write(paste(Sys.time(), "Parsing breakpoints", argv$input), stderr())
+bpgr = breakpointRanges(full_vcf, unpartneredBreakends=FALSE)
+if (is.null(bpgr$sourceId) & !is.null(bpgr$vcfId)) {
+  stop("StructuralVariantAnnotation version mismatch.")
+}
+write(paste(Sys.time(), "Calculating breakpoint VAF", argv$input), stderr())
+bpgr$af = round(gridss_bp_af(bpgr, full_vcf, argv$tumourordinal), 5)
+bpgr$af_str = paste(bpgr$af, partner(bpgr)$af, sep=",")
+if (length(bpgr) > 0) {
+  info(full_vcf[names(bpgr)])$TAF = bpgr$af_str
+}
+write(paste(Sys.time(), "Filtering breakpoints", argv$input), stderr())
+bpfiltered = gridss_breakpoint_filter(bpgr, full_vcf, bsgenome=refgenome, pon_dir=argv$pondir, normalOrdinal=argv$normalordinal, tumourOrdinal=tumourordinal)
+filters[names(bpgr)] = bpfiltered
+if (argv$gc) { gc() }
 
 # shadow breakpoint removed due to initial mapq20 filter reducing FP rate
 # bpfiltered = .addFilter(bpfiltered, "shadow", is_shadow_breakpoint(bpgr, begr, full_vcf))
@@ -95,17 +172,20 @@ if (is.null(argv$pondir)) {
 # - filter to only decent length assemblies?
 #begr$calls_1k_window = countOverlaps(begr, rowRanges(full_vcf), ignore.strand=TRUE, maxgap=1000)
 
-filters = rep("", length(full_vcf))
-names(filters) = names(full_vcf)
-filters[names(full_bpgr)] = bpfiltered
-filters[names(full_begr)] = befiltered
+# Remove very hard filtered variants
+full_vcf = full_vcf[passes_very_hard_filters(filters)]
+unpaired_breakpoint = !is.na(info(full_vcf)$MATEID) & !(info(full_vcf)$MATEID %in% names(full_vcf))
+full_vcf = full_vcf[!unpaired_breakpoint]
+filters = filters[passes_very_hard_filters(filters)]
+filters = filters[!unpaired_breakpoint]
+rm(unpaired_breakpoint)
 
 vcf = full_vcf[passes_soft_filters(filters)]
-vcf = vcf[is.na(info(vcf)$PARID) | info(vcf)$PARID %in% names(vcf)]
-bpgr = full_bpgr[names(full_bpgr) %in% names(vcf)]
-begr = full_begr[names(full_begr) %in% names(vcf)]
+vcf = vcf[is.na(info(vcf)$MATEID) | info(vcf)$MATEID %in% names(vcf)]
+bpgr = bpgr[names(bpgr) %in% names(vcf)]
+if (argv$gc) { gc() }
 
-write(paste0("Calculating transitive links", argv$input), stderr())
+write(paste(Sys.time(),"Calculating transitive links", argv$input), stderr())
 # transitive calling
 transitive_df = transitive_calls(vcf, bpgr, report="max2") %>%
   # only make transitive calls were we actually know the path
@@ -113,18 +193,56 @@ transitive_df = transitive_calls(vcf, bpgr, report="max2") %>%
   mutate(type="transitive")
 # now we filter imprecise variants
 is_imprecise = !(is.na(info(vcf)$IMPRECISE) | !info(vcf)$IMPRECISE) |
-  !((!is.na(info(vcf)$PARID) & info(vcf)$ASSR + info(vcf)$SR + info(vcf)$IC > 0) |
-      (is.na(info(vcf)$PARID) & info(vcf)$BASSR + info(vcf)$BSC > 0))
+  !((!is.na(info(vcf)$MATEID) & info(vcf)$ASSR + info(vcf)$SR + info(vcf)$IC > 0) |
+      (is.na(info(vcf)$MATEID) & info(vcf)$BASSR + info(vcf)$BSC > 0))
 filters[names(vcf)[is_imprecise]] = paste0(filters[names(vcf)[is_imprecise]], ";imprecise")
 filters[transitive_df$linked_by] = paste0(filters[transitive_df$linked_by], ";transitive")
 
+# write out filtering overview plots
+if (argv$plotdir != "") {
+  fdf = data.frame(
+    id=names(filters),
+    isSingleBreakend=str_detect(unlist(alt(full_vcf)), stringr::fixed(".")),
+    filter=filters,
+    gridssFilters=rowRanges(full_vcf)$FILTER,
+    qual=rowRanges(full_vcf)$QUAL)
+  fldf = fdf %>%
+    mutate(nfilters=str_count(filters, ";")) %>%
+    mutate(filter=str_replace(filter, "^;", "")) %>%
+    separate_rows(filter, sep=";")
+  ggsave(paste0(argv$plotdir, "/", basename(argv$output), ".plots.bpfilters.png"),
+    ggplot(fldf %>% filter(!isSingleBreakend & qual > 250)) +
+      aes(x=qual, fill=as.character(nfilters)) +
+      geom_histogram(bins=50) +
+      scale_x_log10() +
+      facet_wrap( ~ filter) +
+      labs(fill="Filters", title="Filtering breakdown (breakpoint variants)"),
+    dpi=dpi, unit="in", width=3840/dpi, height=2160/dpi)
+  ggsave(paste0(argv$plotdir, "/", basename(argv$output), ".plots.befilters.png"),
+    ggplot(fldf %>% filter(isSingleBreakend & qual > 500)) +
+      aes(x=qual, fill=as.character(nfilters)) +
+      geom_histogram(bins=50) +
+      scale_x_log10() +
+      facet_wrap( ~ filter) +
+      labs(fill="Filters", title="Filtering breakdown (single breakend variants)"),
+    dpi=dpi, unit="in", width=3840/dpi, height=2160/dpi)
+  ggsave(paste0(argv$plotdir, "/", basename(argv$output), ".plots.bpassembly.png"),
+      ggplot(fdf %>% filter(filter=="")) +
+      aes(x=qual, fill=str_replace(gridssFilters, "(PASS)|(;?LOW_QUAL;?)", "")) +
+      geom_histogram(bins=100) +
+      scale_x_log10() +
+      labs("Assembly support of unfiltered variants", fill="Status"),
+      dpi=dpi, unit="in", width=3840/dpi, height=2160/dpi)
+}
+
 vcf = full_vcf[passes_soft_filters(filters)]
-vcf = vcf[is.na(info(vcf)$PARID) | info(vcf)$PARID %in% names(vcf)]
-bpgr = full_bpgr[names(full_bpgr) %in% names(vcf)]
-begr = full_begr[names(full_begr) %in% names(vcf)]
+vcf = vcf[is.na(info(vcf)$MATEID) | info(vcf)$MATEID %in% names(vcf)]
+bpgr = bpgr[names(bpgr) %in% names(vcf)]
+begr = begr[names(begr) %in% names(vcf)]
+if (argv$gc) { gc() }
 
 asm_linked_df = NULL
-write(paste0("Calculating assembly links ", argv$input), stderr())
+write(paste(Sys.time(),"Calculating assembly links", argv$input), stderr())
 # Assembly-based event linking
 if (length(vcf) > 0) {
   asm_linked_df = linked_assemblies(vcf) %>%
@@ -133,34 +251,34 @@ if (length(vcf) > 0) {
 
 link_df = bind_rows(asm_linked_df, transitive_df) %>%
   mutate(linking_group=str_replace(linked_by, "/.*$", "")) %>%
-  mutate(pass=passes_final_filters(vcf[vcfId])) %>%
+  mutate(pass=passes_final_filters(vcf[sourceId])) %>%
   group_by(linking_group) %>%
   mutate(pass=any(pass)) %>%
   ungroup() %>%
   filter(pass)
 
-write(paste0("Calculating bebe insertion links ", argv$input), stderr())
+write(paste(Sys.time(),"Calculating bebe insertion links", argv$input), stderr())
 # Insertion linkage
 bebeins_link_df = linked_by_breakend_breakend_insertion_classification(begr) %>%
   group_by(linked_by) %>%
-  mutate(pass=passes_final_filters(vcf[vcfId])) %>%
+  mutate(pass=passes_final_filters(vcf[sourceId])) %>%
   mutate(pass=any(pass)) %>%
   ungroup() %>%
   filter(pass) %>%
   mutate(type="bebeins")
-write(paste0("Calculating bebp insertion links ", argv$input), stderr())
+write(paste(Sys.time(),"Calculating bebp insertion links", argv$input), stderr())
 bebpins_link_df = linked_by_breakpoint_breakend_insertion_classification(bpgr, begr) %>%
   group_by(linked_by) %>%
-  mutate(pass=passes_final_filters(vcf[vcfId])) %>%
+  mutate(pass=passes_final_filters(vcf[sourceId])) %>%
   mutate(pass=any(pass)) %>%
   ungroup() %>%
   filter(pass) %>%
   mutate(type="bebpins")
 # Inversion linkage
-write(paste0("Calculating simple inversions ", argv$input), stderr())
+write(paste(Sys.time(),"Calculating simple inversions", argv$input), stderr())
 inv_link_df = linked_by_simple_inversion_classification(bpgr) %>%
   group_by(linked_by) %>%
-  mutate(pass=passes_final_filters(vcf[vcfId])) %>%
+  mutate(pass=passes_final_filters(vcf[sourceId])) %>%
   mutate(pass=any(pass)) %>%
   ungroup() %>%
   filter(pass) %>%
@@ -174,16 +292,16 @@ inv_link_df = linked_by_simple_inversion_classification(bpgr) %>%
 # Given the focal nature of chromoplexy, ChainFinder works because it just
 # finds the focal events, not because the model is correct.
 # TODO: show this by modelling additional focal DSBs
-write(paste0("Calculating dsb links ", argv$input), stderr())
+write(paste(Sys.time(),"Calculating dsb links", argv$input), stderr())
 dsb_link_df = linked_by_dsb(bpgr) %>%
   group_by(linked_by) %>%
-  mutate(pass=passes_final_filters(vcf[vcfId])) %>%
+  mutate(pass=passes_final_filters(vcf[sourceId])) %>%
   mutate(pass=any(pass)) %>%
   ungroup() %>%
   filter(pass) %>%
   mutate(type="dsb")
 
-write(paste0("Removing duplicated/conflicting links ", argv$input), stderr())
+write(paste(Sys.time(),"Removing duplicated/conflicting links", argv$input), stderr())
 # linking priorities:
 # - asm independent of other linkages
 # - transitive independent of other linkages
@@ -193,25 +311,30 @@ event_link_df = bind_rows(
   bebpins_link_df,
   inv_link_df,
   dsb_link_df) %>%
-  dplyr::select(vcfId, linked_by) %>%
-  mutate(QUAL=rowRanges(vcf)[vcfId]$QUAL) %>%
+  dplyr::select(sourceId, linked_by) %>%
+  mutate(
+    QUAL=rowRanges(vcf)[sourceId]$QUAL,
+    hasPolyA=str_detect(rowRanges(vcf[sourceId])$ALT, "A{16}")) %>%
   group_by(linked_by) %>%
   # filter events where supporting fragment counts differ by too much
   mutate(
-    max_supporting_fragment_count = max(ifelse(is.na(info(full_vcf[vcfId])$PARID), info(full_vcf[vcfId])$BVF, info(full_vcf[vcfId])$VF)),
-    min_supporting_fragment_count = min(ifelse(is.na(info(full_vcf[vcfId])$PARID), info(full_vcf[vcfId])$BVF, info(full_vcf[vcfId])$VF))) %>%
-  filter(max_supporting_fragment_count >= gridss.min_rescue_portion * max_supporting_fragment_count)
+    max_supporting_fragment_count = max(ifelse(is.na(info(full_vcf[sourceId])$MATEID), info(full_vcf[sourceId])$BVF, info(full_vcf[sourceId])$VF)),
+    min_supporting_fragment_count = min(ifelse(is.na(info(full_vcf[sourceId])$MATEID), info(full_vcf[sourceId])$BVF, info(full_vcf[sourceId])$VF)),
+    hasPolyA=any(hasPolyA)
+    ) %>%
+  filter(min_supporting_fragment_count >= gridss.min_rescue_portion * max_supporting_fragment_count | hasPolyA)
 
+write(paste(Sys.time(),"Calculating final linkage annotation", argv$input), stderr())
 # Only keep the best QUAL event linkage
 event_link_df = event_link_df %>%
   group_by(linked_by) %>%
   mutate(linkQUAL = pmin(QUAL)) %>%
-  group_by(vcfId) %>%
+  group_by(sourceId) %>%
   filter(QUAL == linkQUAL) %>%
   group_by(linked_by)
 # Don't event link to PON filtered variants
 event_link_df = event_link_df %>%
-  filter(!str_detect(filters[vcfId], "PON"))
+  filter(!str_detect(filters[sourceId], "PON"))
 # Fix up pairing
 event_link_df = event_link_df %>%
   filter(n() == 2) %>%
@@ -219,28 +342,33 @@ event_link_df = event_link_df %>%
 
 # include both breakends of any linked breakpoints
 # as linkage can be breakend specific (e.g. assembly, bpbeins)
-link_rescue = bind_rows(link_df, event_link_df) %>% pull(vcfId) %>% unique()
+link_rescue = bind_rows(link_df, event_link_df) %>% pull(sourceId) %>% unique()
 link_rescue = c(link_rescue, bpgr[link_rescue[link_rescue %in% names(bpgr)]]$partner)
 
 # Note that we don't rescue equivalent events
 begr$partner = rep(NA, length(begr))
-eqv_link_df = linked_by_equivalent_variants(full_vcf, as(rbind(as.data.frame(bpgr), as.data.frame(begr)), "GRanges"), bsgenome=refgenome) %>%
-  filter(passes_final_filters(vcf[vcfId]) | vcfId %in% link_rescue) %>%
-  group_by(linked_by) %>%
-  filter(n() == 2) %>%
-  ungroup() %>%
-  mutate(type="eqv")
+if (!is.null(refgenome)) {
+  eqv_link_df = linked_by_equivalent_variants(full_vcf, as(rbind(as.data.frame(bpgr), as.data.frame(begr)), "GRanges"), bsgenome=refgenome) %>%
+    filter(passes_final_filters(vcf[sourceId]) | sourceId %in% link_rescue) %>%
+    group_by(linked_by) %>%
+    filter(n() == 2) %>%
+    ungroup() %>%
+    mutate(type="eqv")
+} else {
+  eqv_link_df = NULL
+}
 
 link_summary_df = bind_rows(link_df, event_link_df, eqv_link_df) %>%
-  group_by(vcfId) %>%
+  group_by(sourceId) %>%
   summarise(linked_by=paste0(linked_by, collapse=","))
 
 # Add linking information
 info(full_vcf)$LOCAL_LINKED_BY = rep("", length(full_vcf))
 info(full_vcf)$REMOTE_LINKED_BY = rep("", length(full_vcf))
-info(full_vcf[link_summary_df$vcfId])$LOCAL_LINKED_BY = link_summary_df$linked_by
-info(full_vcf[!is.na(info(full_vcf)$PARID)])$REMOTE_LINKED_BY = info(full_vcf[info(full_vcf[!is.na(info(full_vcf)$PARID)])$PARID])$LOCAL_LINKED_BY
+info(full_vcf[link_summary_df$sourceId])$LOCAL_LINKED_BY = link_summary_df$linked_by
+info(full_vcf[!is.na(info(full_vcf)$MATEID)])$REMOTE_LINKED_BY = info(full_vcf[info(full_vcf[!is.na(info(full_vcf)$MATEID)])$MATEID])$LOCAL_LINKED_BY
 
+write(paste(Sys.time(),"Final qual filtering ", argv$output), stderr())
 # final qual filtering
 fails_qual_without_rescue = !passes_final_filters(full_vcf, include.existing.filters=FALSE) & !(names(full_vcf) %in% link_rescue)
 filters[names(full_vcf)[fails_qual_without_rescue]] = paste0(filters[names(full_vcf)[fails_qual_without_rescue]], ";qual")
@@ -248,17 +376,17 @@ filters[names(full_vcf)[fails_qual_without_rescue]] = paste0(filters[names(full_
 ################
 # Write outputs
 VariantAnnotation::fixed(full_vcf)$FILTER = ifelse(str_remove(filters, "^;") == "", "PASS", str_remove(filters, "^;"))
-
+if (argv$gc) { gc() }
 if (!is.na(argv$output)) {
-  write(paste0("Writing ", argv$output), stderr())
+  write(paste(Sys.time(),"Writing ", argv$output), stderr())
   vcf = full_vcf[passes_soft_filters(filters)]
-  vcf = vcf[is.na(info(vcf)$PARID) | info(vcf)$PARID %in% names(vcf)]
+  vcf = vcf[is.na(info(vcf)$MATEID) | info(vcf)$MATEID %in% names(vcf)]
   writeVcf(vcf, argv$output, index=TRUE)
 }
 if (!is.na(argv$fulloutput)) {
-  write(paste0("Writing ", argv$fulloutput), stderr())
+  write(paste(Sys.time(),"Writing ", argv$fulloutput), stderr())
   vcf = full_vcf[passes_very_hard_filters(filters)]
-  vcf = vcf[is.na(info(vcf)$PARID) | info(vcf)$PARID %in% names(vcf)]
+  vcf = vcf[is.na(info(vcf)$MATEID) | info(vcf)$MATEID %in% names(vcf)]
   writeVcf(vcf, argv$fulloutput, index=TRUE)
 }
 
