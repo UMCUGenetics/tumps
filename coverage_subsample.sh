@@ -249,7 +249,7 @@ do
     echo "GRIDSS filter"
     echo "#! /bin/sh" > logs/GRIDSS_filter_${COV}_${RAND}.sh
     echo "guixr load-profile /hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/hmf-pipeline -- <<EOF" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
-    echo "Rscript ${LIBGRIDSS}/gridss_somatic_filter.R --normalordinal 2 -p $GRIDSS_PON -i ${RAWVCF} -o ${SOMVCF} -f ${SOMFULLVCF} -s $LIBGRIDSS" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "Rscript ${LIBGRIDSS}/gridss_somatic_filter.R --normalordinal 2 --pondir $GRIDSS_PON --input ${RAWVCF} --output ${SOMVCF} --fulloutput ${SOMFULLVCF} --scriptdir $LIBGRIDSS" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
     echo "mv ${SOMVCF}.bgz ${SOMVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
     echo "mv ${SOMFULLVCF}.bgz ${SOMFULLVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
     echo "gunzip ${SOMVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
