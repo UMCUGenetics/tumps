@@ -8,7 +8,7 @@ argp = add_argument(argp, "--output", help="High confidence somatic subset")
 argp = add_argument(argp, "--fulloutput", help="Full call set excluding obviously germline call.")
 argp = add_argument(argp, "--plotdir", default="", help="Output directory for plots")
 argp = add_argument(argp, "--normalordinal", type="integer", default=1, help="Ordinal of matching normal sample in the VCF")
-argp = add_argument(argp, "--tumourordinal", type="integer", nargs=Inf, help="Ordinal of tumour sample(s) in the VCF. Defaults to all samples not listed as matched normals")
+#argp = add_argument(argp, "--tumourordinal", type="integer", nargs=Inf, help="Ordinal of tumour sample(s) in the VCF. Defaults to all samples not listed as matched normals")
 argp = add_argument(argp, "--scriptdir", default=ifelse(sys.nframe() == 0, "./", dirname(sys.frame(1)$ofile)), help="Path to libgridss.R script")
 argp = add_argument(argp, "--gc", flag=TRUE, help="Perform garbage collection after freeing of large objects. ")
 # argv = parse_args(argp, argv=c("--input", "../../../gridss-purple-linx/test/gridss/COLO829v001R_COLO829v001T.gridss.vcf", "--output", "../../../temp/somatic.vcf", "-f", "../../../temp/full.vcf", "-p", "../../../gridss-purple-linx/refdata/hg19/dbs/gridss/pon3792v1", "--scriptdir", "../", "--gc"))
@@ -85,7 +85,7 @@ if (any(argv$tumourordinal > nsamples)) {
 	write(msg, stderr())
 	stop(msg)
 }
-
+tumourordinal = seq(ncol(geno(raw_vcf)$VF))[-argv$normalordinal]
 write(paste("Tumour samples:", paste(colnames(geno(raw_vcf)$VF)[argv$tumourordinal], collapse = ",")), stderr())
 write(paste("Matched normals:", paste(colnames(geno(raw_vcf)$VF)[argv$normalordinal], collapse = ",")), stderr())
 if (argv$plotdir != "") {
@@ -113,6 +113,7 @@ if (argv$plotdir != "") {
          dpi=dpi, unit="in", width=3840/dpi, height=2160/dpi)
 }
 # hard filter variants that are obviously not somatic
+geno(raw_vcf)$QUAL[is.na(geno(raw_vcf)$QUAL[,argv$normalordinal]),argv$normalordinal] <- 0
 full_vcf = raw_vcf[geno(raw_vcf)$QUAL[,argv$normalordinal] / VariantAnnotation::fixed(raw_vcf)$QUAL < 4 * gridss.allowable_normal_contamination]
 rm(raw_vcf)
 if (argv$gc) { gc() }
@@ -121,7 +122,6 @@ full_vcf = full_vcf[is.na(info(full_vcf)$MATEID) | info(full_vcf)$MATEID %in% na
 full_vcf = align_breakpoints(full_vcf)
 # Add header fields
 full_vcf = addVCFHeaders(full_vcf)
-
 info(full_vcf)$TAF = rep("", length(full_vcf))
 filters = rep("", length(full_vcf))
 names(filters) = names(full_vcf)
