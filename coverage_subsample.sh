@@ -22,12 +22,12 @@ Parameters:
     --samtools                    Path to SAMTOOLS [/hpc/local/CentOS7/cog_bioinf/samtools-1.7/samtools]
     --mail                    Mail for HPC jobs [jespejov@umcutrecht.nl]
     --libgridss                    Path to LIBGRIDSS directory [scripts/libgridss/]
-    --gridss_pon                    Path to GRIDSS PON directory (too big to share here) [/hpc/cog_bioinf/cuppen/project_data/Roel_pipeline_validation/gridss]
-    --sniffles                    Path to Sniffles executable [/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/Sniffles-1.0.8/bin/sniffles-core-1.0.8/sniffles]
-    --survivor                    Path to SURVIVOR executable (for nanopore and pbsv) [/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/SURVIVOR-1.0.6/Debug/SURVIVOR]
-    --pbsv                    Path to PBSV executable [/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/miniconda3/bin/pbsv]
+    --gridss_pon                    Path to GRIDSS PON directory (too big to share here) [/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/GRIDSS_PON]
+    --sniffles                    Path to Sniffles executable [/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/tools_kloosterman/Sniffles-1.0.8/bin/sniffles-core-1.0.8/sniffles]
+    --survivor                    Path to SURVIVOR executable (for nanopore and pbsv) [/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/tools_kloosterman/SURVIVOR-1.0.6/Debug/SURVIVOR]
+    --pbsv                    Path to PBSV executable [/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/bin/miniconda3/bin/pbsv]
     --ref                    Path to reference genome (for PBSV) [/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.fasta]
-    --nanosv_venv                    Path to NanoSV VENV folder [/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/NanoSV/bin/NanoSV]
+    --nanosv_venv                    Path to NanoSV VENV folder [/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/bin/NanoSV/bin/NanoSV]
     --nanosv_config                    Path to NanoSV config file [files/config_COLO829_NGMLR.ini]
 
 "
@@ -51,12 +51,12 @@ SAMBAMBA=/hpc/local/CentOS7/cog_bioinf/sambamba_v0.6.5/sambamba
 SAMTOOLS=/hpc/local/CentOS7/cog_bioinf/samtools-1.7/samtools
 MAIL=jespejov@umcutrecht.nl
 LIBGRIDSS=${SCRIPT_DIR}/scripts/libgridss/
-GRIDSS_PON=/hpc/cog_bioinf/cuppen/project_data/Roel_pipeline_validation/gridss
-SNIFFLES=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/Sniffles-1.0.8/bin/sniffles-core-1.0.8/sniffles
-SURVIVOR=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/SURVIVOR-1.0.6/Debug/SURVIVOR
-NANOSV_VENV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/NanoSV/
+GRIDSS_PON=/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/GRIDSS_PON/
+SNIFFLES=/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/tools_kloosterman/Sniffles-1.0.8/bin/sniffles-core-1.0.8/sniffles
+SURVIVOR=/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/tools_kloosterman/SURVIVOR-1.0.6/Debug/SURVIVOR
+NANOSV_VENV=/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/bin/NanoSV/bin/NanoSV
 NANOSV_CONFIG=${SCRIPT_DIR}/files/config_COLO829_NGMLR.ini
-PBSV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/miniconda3/bin/pbsv
+PBSV=/hpc/cuppen/projects/TP0001_General/COLO/analysis/jvalleinclan/bin/miniconda3/bin/pbsv
 REF=/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.fasta
 
 ##READ PARAMETERS
