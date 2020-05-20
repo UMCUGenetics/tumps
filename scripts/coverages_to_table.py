@@ -41,7 +41,7 @@ for tech in ['illumina']:
         purity = d.split('/')[-2].split('_')[-1]
         truthfiles = glob.glob(d+"/truth.purity*.vcf")
         for f in truthfiles:
-            coverage = f..replace("purity","cov").split('.')[-2]
+            coverage = f.replace("purity","cov").split('.')[-2]
             if not purity in masterD[tech]:
                 masterD[tech][purity]= {'raw':[], 'somatic':[]}
             cov = coverage.replace("cov", "")
