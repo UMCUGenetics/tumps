@@ -31,7 +31,7 @@ def vcf_counter(filename, pattern):
 
 directory=argv[1]
 masterD = {}
-print '\t'.join(['tech', 'coverage', 'purity', 'type', 'tp', 'fp', 'fn'])
+print '\t'.join(['tech', 'purity', 'coverage', 'type', 'tp', 'fp', 'fn'])
 for tech in ['illumina']:
     masterD[tech] = {}
     sampledirs = glob.glob(directory+"/"+tech+"_[0-9][0-9]/")
@@ -45,11 +45,11 @@ for tech in ['illumina']:
             if not purity in masterD[tech]:
                 masterD[tech][purity]= {'raw':[], 'somatic':[]}
             cov = coverage.replace("cov", "")
-            tsetsom, tsettotal = vcf_counter(f,p+"_SOM")
+            tsetsom, tsettotal = vcf_counter(f,cov+"_SOM")
             tpsom = str(tsetsom)
             fnsom = str(tsettotal - tsetsom)
             
-            tsetraw, tmp = vcf_counter(f,p+"_RAW")
+            tsetraw, tmp = vcf_counter(f,cov+"_RAW")
             tpraw = str(tsetraw)
             fnraw = str(tsettotal - tsetraw)
             
@@ -75,7 +75,7 @@ for tech in ['illumina']:
 
             masterD[tech][purity]['raw'].append(tsetraw)
             masterD[tech][purity]['somatic'].append(tsetsom)
-            print '\t'.join([tech, n , purity, 'raw', tpraw, fpraw, fnraw])
-            print '\t'.join([tech, n , purity, 'somatic', tpsom, fpsom, fnsom])
+            print '\t'.join([tech, purity , coverage, 'raw', tpraw, fpraw, fnraw])
+            print '\t'.join([tech, purity , coverage, 'somatic', tpsom, fpsom, fnsom])
             
 
