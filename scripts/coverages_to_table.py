@@ -35,17 +35,16 @@ print '\t'.join(['tech', 'coverage', 'purity', 'type', 'tp', 'fp', 'fn'])
 for tech in ['illumina']:
     masterD[tech] = {}
     sampledirs = glob.glob(directory+"/"+tech+"_[0-9][0-9]/")
-    print sampledirs
     #sampledirs += glob.glob(directory+"/"+tech+"/controls/")
     nsamples = len(sampledirs)
     for d in sampledirs:
-        n = d.split('/')[-2].split('_')[-1]
+        purity = d.split('/')[-2].split('_')[-1]
         truthfiles = glob.glob(d+"/truth.purity*.vcf")
         for f in truthfiles:
-            purity = f.split('.')[-2]
+            coverage = f..replace("purity","cov").split('.')[-2]
             if not purity in masterD[tech]:
                 masterD[tech][purity]= {'raw':[], 'somatic':[]}
-            p = purity.replace("purity", "")
+            cov = coverage.replace("cov", "")
             tsetsom, tsettotal = vcf_counter(f,p+"_SOM")
             tpsom = str(tsetsom)
             fnsom = str(tsettotal - tsetsom)
@@ -55,14 +54,14 @@ for tech in ['illumina']:
             fnraw = str(tsettotal - tsetraw)
             
             if tech == "nanopore":
-                somfile=d+"/%s.somatic.truth.vcf" % (purity)
-                rawfile=d+"/%s.merged.truth.vcf" % (purity)
+                somfile=d+"/%s.somatic.truth.vcf" % (coverage)
+                rawfile=d+"/%s.merged.truth.vcf" % (coverage)
             elif tech == "pacbio":
-                somfile=d+"/%s.somatic.truth.uniquified.vcf" % (purity)
-                rawfile=d+"/%s.merged.truth.uniquified.vcf" % (purity)
+                somfile=d+"/%s.somatic.truth.uniquified.vcf" % (coverage)
+                rawfile=d+"/%s.merged.truth.uniquified.vcf" % (coverage)
             else:
-                somfile=d+"/%s.somatic.truth.uniquified.vcf" % (purity)
-                rawfile=d+"/%s.raw.truth.uniquified.vcf" % (purity)
+                somfile=d+"/%s.somatic.truth.uniquified.vcf" % (coverage)
+                rawfile=d+"/%s.raw.truth.uniquified.vcf" % (coverage)
                 
             somtrue, somtotal = vcf_counter(somfile,"TRUTHSET")
             rawtrue, rawtotal = vcf_counter(rawfile,"TRUTHSET")
