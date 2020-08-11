@@ -34,7 +34,7 @@ masterD = {}
 print '\t'.join(['tech', 'purity', 'coverage', 'type', 'tp', 'fp', 'fn'])
 for tech in ['illumina']:
     masterD[tech] = {}
-    sampledirs = glob.glob(directory+"/"+tech+"_[0-9][0-9]/")
+    sampledirs = glob.glob(directory+"/"+tech+"_[0-9][0-9]/") + glob.glob(directory+"/"+tech+"_[0-9]/") + glob.glob(directory+"/"+tech+"_[0-9][0-9][0-9]/")
     #sampledirs += glob.glob(directory+"/"+tech+"/controls/")
     nsamples = len(sampledirs)
     for d in sampledirs:

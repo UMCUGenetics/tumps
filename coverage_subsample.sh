@@ -44,7 +44,7 @@ OVERLAP_SCRIPT=${SCRIPT_DIR}/scripts/annotate_sv_vcf_file_without_ori.py
 
 OUTDIR=.
 MODE=gridss
-TRUTHSET=${SCRIPT_DIR}/files/COLO829.somatic.vcf
+TRUTHSET=${SCRIPT_DIR}/files/truthset_somaticSVs_COLO829.vcf
 COVERAGES="1,5,10,30,50"
 BED=${SCRIPT_DIR}/files/human_hg19.bed
 SAMBAMBA=/hpc/local/CentOS7/cog_bioinf/sambamba_v0.6.5/sambamba
@@ -248,7 +248,7 @@ do
     if  [ ! -f $SOMVCF ]; then
     echo "GRIDSS filter"
     echo "#! /bin/sh" > logs/GRIDSS_filter_${COV}_${RAND}.sh
-    echo "guixr load-profile /hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/hmf-pipeline -- <<EOF" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
+    echo "guixr load-profile ~/bin/hmf-pipeline -- <<EOF" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
     echo "Rscript ${LIBGRIDSS}/gridss_somatic_filter.R --normalordinal 2 --pondir $GRIDSS_PON --input ${RAWVCF} --output ${SOMVCF} --fulloutput ${SOMFULLVCF} --scriptdir $LIBGRIDSS" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
     echo "mv ${SOMVCF}.bgz ${SOMVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh
     echo "mv ${SOMFULLVCF}.bgz ${SOMFULLVCF}.gz" >> logs/GRIDSS_filter_${COV}_${RAND}.sh

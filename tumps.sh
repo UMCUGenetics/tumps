@@ -9,7 +9,7 @@ echo "
 Parameters:
     -t|--tumor                    Path to tumor BAM file, must be indexed (Required)
     -n|--normal                    Path to normal BAM file, must be indexed (Required)
-    -tc|--tumor_coverage                    Average tumor coverage (Required)$NORMAL
+    -tc|--tumor_coverage                    Average tumor coverage (Required)
     -nc|--normal_coverage                    Average normal coverage for mixing (Required)
     -nsv|--normal_sv                    Path to normal BAM file to use for SV calling (if different than normal above), must be indexed [equal to --normal]
     -p|--purities                    Merge Tumor and Normal with the following tumor purities (comma separated): [0,10,20,25,50,75,100]
@@ -37,23 +37,28 @@ exit
 
 POSITIONAL=()
 
+  
+SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
+GRIDSS_SCRIPT=${SCRIPT_DIR}/scripts/GRIDSS.sh
+OVERLAP_SCRIPT=${SCRIPT_DIR}/scripts/annotate_sv_vcf_file_without_ori.py
+
 ##DEFAULT ARGUMENTS
 TUMOR_COVERAGE=0
 NORMAL_COVERAGE=0
 OUTDIR=.
 MODE=gridss
-TRUTHSET=files/COLO829.somatic.vcf
+TRUTHSET=${SCRIPT_DIR}/files/truthset_somaticSVs_COLO829.vcf
 PURITIES="0,10,20,25,50,100"
-BED=files/human_hg19.bed
+BED=${SCRIPT_DIR}/files/human_hg19.bed
 SAMBAMBA=/hpc/local/CentOS7/cog_bioinf/sambamba_v0.6.5/sambamba
 SAMTOOLS=/hpc/local/CentOS7/cog_bioinf/samtools-1.7/samtools
 MAIL=jespejov@umcutrecht.nl
-LIBGRIDSS=script/libgridss/
+LIBGRIDSS=${SCRIPT_DIR}/script/libgridss/
 GRIDSS_PON=/hpc/cog_bioinf/cuppen/project_data/Roel_pipeline_validation/gridss
 SNIFFLES=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/Sniffles-1.0.8/bin/sniffles-core-1.0.8/sniffles
 SURVIVOR=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/tools_kloosterman/SURVIVOR-1.0.6/Debug/SURVIVOR
 NANOSV_VENV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/NanoSV/
-NANOSV_CONFIG=files/config_COLO829_NGMLR.ini
+NANOSV_CONFIG=${SCRIPT_DIR}/files/config_COLO829_NGMLR.ini
 PBSV=/hpc/cog_bioinf/cuppen/personal_data/jvalleinclan/bin/miniconda3/bin/pbsv
 REF=/hpc/cog_bioinf/GENOMES/Homo_sapiens.GRCh37.GATK.illumina/Homo_sapiens.GRCh37.GATK.illumina.fasta
 
@@ -203,10 +208,7 @@ elif [ -z $NORMAL_SV ]; then
   echo "Using $NORMAL also as normal for SV"
   NORMAL_SV=$NORMAL
 fi
-  
-SCRIPT_DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
-GRIDSS_SCRIPT=${SCRIPT_DIR}/scripts/GRIDSS.sh
-OVERLAP_SCRIPT=${SCRIPT_DIR}/scripts/annotate_sv_vcf_file_without_ori.py
+
 
 RAND=$(cat /dev/urandom | tr -cd 'a-zA-Z0-9' | head -c 7)
 echo "Random code for this run is $RAND"
